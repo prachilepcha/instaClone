@@ -18,3 +18,18 @@ class SessionToken(models.Model):
 
 	def create_token(self):
 		self.session_token = uuid.uuid4()
+
+
+class LikeModel(models.Model):
+    user = models.ForeignKey(UserModel)
+    post = models.ForeignKey(PostModel)
+    created_on = models.DateTimeField(auto_now_add=True)
+    updated_on = models.DateTimeField(auto_now=True
+
+
+def like_view(request):
+	user = check_validation(request)
+	if user and request.method == 'POST':
+		print 'The user is valid'
+	else:
+		return redirect('/login/')

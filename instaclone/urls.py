@@ -9,3 +9,6 @@ urlpatterns = [
     url('login/', login_view),
     url('', signup_view)
 ]
+urlpatterns = [
+url('like/', like_view),
+]
