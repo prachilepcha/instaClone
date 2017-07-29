@@ -5,7 +5,8 @@
     <title>Title</title>
 <h1> Instaclone</h1>
 <body>
-<form action = "">{% csrf token %}
+<form action = "">
+    {% csrf_token %}
  <div>
                 <label for="username">Username: </label>
                 <input id="username" type="text" name="username" value={{ username }}>
