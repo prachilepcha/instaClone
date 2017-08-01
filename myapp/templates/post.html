@@ -2,13 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Post_View</title>
+    <title>Dashboard</title>
 </head>
 <body>
 
-    <form method="POST" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{
-    </form>
+     <form method="POST" enctype="multipart/form-data">
+       {% csrf_token %}
+       {{ form }}
+       <input type="submit" class="btn btn-default" value="Add a picture">
+     </form>
+
 </body>
 </html>

@@ -2,20 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
-<h1> Instaclone</h1>
+    <title>Instagram Clone</title>
+    <style>
+    body{
+    text-align:center;
+    background-color: blue;
+    background-size: cover;
+    background-position: center;
+    color: purple;
+    font-size: 40px;
+    }
+    </style>
+</head>
 <body>
-<form action = "">
-    {% csrf_token %}
- <div>
-                <label for="username">Username: </label>
-                <input id="username" type="text" name="username" value={{ username }}>
-            </div>
-<div>
-                <label for="password">Password: </label>
-                <input id="password" type="password" name="password" value={{ password }}>
-            </div>
-                <input type="submit" value="Login">
-</form>
+    <form method="post">
+     {% csrf_token %}
+          <div>
+              <label for="username">Username: </label>
+            <input id="username" type="text" name="username" value={{ username }}>
+        </div>
+
+        <div>
+            <label for="password">Password: </label>
+            <input id="password" type="password" name="password" value={{ password }}>
+        </div>
+
+        <input type="submit" value="Log In">
+
+    </form>
+
+    Not a User yet..! You need to Sign Up first..!
+     <div style="float: center; padding: 20px;  ">
+        <form action="/signup/" method="POST">
+            {% csrf_token %}
+             <input type="submit" class="btn btn-default" value="Signup Page">
+        </form>
+    </div>
 </body>
 </html>
