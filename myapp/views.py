@@ -1,15 +1,29 @@
 from __future__ import unicode_literals
 from django.shortcuts import render, redirect
-from forms import SignUpForm, LoginForm, PostForm, LikeForm, CommentForm, UpvoteForm, SearchForm
-from models import UserModel, SessionToken, PostModel, LikeModel, CommentModel
+from forms import SignUpForm, LoginForm, PostForm, LikeForm, CommentForm
+from models import UserModel, SessionToken, PostModel, LikeModel, CommentModel , CategoryModel
 from django.contrib.auth.hashers import make_password, check_password
-from instaclone.settings import BASE_DIR
-from imgurpython import ImgurClient
-from datetime import timedelta
+from datetime import timedelta,datetime
 from django.utils import timezone
+from instaClone.settings import BASE_DIR
+
+from clarifai.rest import ClarifaiApp
+app = ClarifaiApp(api_key='da2c3a17edc1447ca6d5db97a9e5d049')
+from imgurpython import ImgurClient
+import json
+import codecs
+
+CLIENT_ID = "0372aaa59f6b917"
+
+CLIENT_SECRET = "c1faf1a9c0fe2df3944ffa4a526e6bd4fe03c777"
 
 
+# Create your views here.
+
+
+#Function for Sign Up
 def signup_view(request):
+    response_data = {}
     if request.method == "POST":
         form = SignUpForm(request.POST)
         if form.is_valid():
@@ -17,17 +31,32 @@ def signup_view(request):
             name = form.cleaned_data['name']
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
+
+            #Condition for usename and password length
+            if len(username) < 5:
+                response_data['message']= 'Username must have atleat 4 characters'
+
+                return render(request, 'index.html', {'form': form})
+
+            if len(password) < 6:
+                response_data['message']= 'Password must have atleast 6 character'
+
+                return render(request,'index.html', {'form': form})
+
             # saving data to DB
             user = UserModel(name=name, password=make_password(password), email=email, username=username)
             user.save()
-            return render(request, 'success.html')
+            return render(request, 'success.html',{'name': name})
+
             # return redirect('login/')
-    else:
+    if request.method == "GET":
         form = SignUpForm()
 
+    response_data['form'] = form
     return render(request, 'index.html', {'form': form})
 
 
+#Function for login
 def login_view(request):
     response_data = {}
     if request.method == "POST":
@@ -52,50 +81,15 @@ def login_view(request):
         form = LoginForm()
 
     response_data['form'] = form
-    return render(request, 'login.html', response_data)
+    return render(request, 'login.html',response_data)
 
 
-def like_view(request):
-    user = check_validation(request)
-    if user and request.method == 'POST':
-        form = LikeForm(request.POST)
-        if form.is_valid():
-            post_id = form.cleaned_data.get('post').id
-            posts = PostModel.objects.all().order_by('-created_on')
-            for post in posts:
-
-                existing_like = LikeModel.objects.filter(post_id=post_id, user=user).first()
-                if existing_like:
-                    post.has_liked = True
-
-                if not existing_like:
-                    LikeModel.objects.create(post_id=post_id, user=user)
-                else:
-                    existing_like.delete()
-
-                return redirect('/feed/')
-
-
-        else:
-            return redirect('/feed/')
-
-
-    else:
-        return redirect('/login/')
-
-
-def feed_view(request):
-    user = check_validation(request)
-    if user:
-        posts = PostModel.objects.all().order_by('created_on')
-        return render(request, 'feed.html', {'posts': posts})
-    else:
-        return redirect('/login/')
-
+#Function for post view
 def post_view(request):
     user = check_validation(request)
 
     if user:
+
         if request.method == 'POST':
             form = PostForm(request.POST, request.FILES)
             if form.is_valid():
@@ -104,21 +98,68 @@ def post_view(request):
                 post = PostModel(user=user, image=image, caption=caption)
                 post.save()
 
-                path = str(BASE_DIR + "\\" + post.image.url)
+                path = str(BASE_DIR + '\\' + post.image.url)
 
-                client = ImgurClient('3885ef5f1212538', 'b607a83fb4e5d62d3e936075755e3a40eccc7326')
-                post.image_url = client.upload_from_path(path,anon=True)['link']
+                client = ImgurClient(CLIENT_ID, CLIENT_SECRET)
+                post.image_url = client.upload_from_path(path, anon=True)['link']
+                clarifai_data = []
+                app = ClarifaiApp(api_key='d031a5db120a409dae6d1f9a3d9e870c')
+                model = app.models.get("general-v1.3")
+                response = model.predict_by_url(url=post.image_url)
+                file_name = 'output' + '.json'
+
+                for json_dict in response:
+                    for key, value in response.iteritems():
+                        print("key: {} | value: {}".format(key, value))
                 post.save()
+
+
 
                 return redirect('/feed/')
 
         else:
             form = PostForm()
-        return render(request, 'post.html', {'form' : form})
+        return render(request, 'post.html', {'form': form})
     else:
         return redirect('/login/')
 
 
+#Function for Feed view
+def feed_view(request):
+    user = check_validation(request)
+    if user:
+
+        posts = PostModel.objects.all().order_by('created_on')
+
+        for post in posts:
+            existing_like = LikeModel.objects.filter(post_id=post.id, user=user).first()
+            if existing_like:
+                post.has_liked = True
+
+        return render(request, 'feed.html', {'posts': posts})
+    else:
+
+        return redirect('/login/')
+
+
+#Function for likking a post
+def like_view(request):
+    user = check_validation(request)
+    if user and request.method == 'POST':
+        form = LikeForm(request.POST)
+        if form.is_valid():
+            post_id = form.cleaned_data.get('post').id
+            existing_like = LikeModel.objects.filter(post_id=post_id, user=user).first()
+            if not existing_like:
+                LikeModel.objects.create(post_id=post_id, user=user)
+            else:
+                existing_like.delete()
+            return redirect('/feed/')
+    else:
+        return redirect('/login/')
+
+
+#Functin for commenting on a post
 def comment_view(request):
     user = check_validation(request)
     if user and request.method == 'POST':
@@ -135,7 +176,8 @@ def comment_view(request):
         return redirect('/login')
 
 
-def check_validation(request):          # For validating the session
+# For validating the session
+def check_validation(request):
     if request.COOKIES.get('session_token'):
         session = SessionToken.objects.filter(session_token=request.COOKIES.get('session_token')).first()
         if session:
@@ -145,60 +187,35 @@ def check_validation(request):          # For validating the session
     else:
         return None
 
+
+# Function for logout
 def logout_view(request):
-
     user = check_validation(request)
-
     if user is not None:
-        latest_sessn = SessionToken.objects.filter(user=user).last()
-        if latest_sessn:
-            latest_sessn.delete()
-            return redirect("/signup/")
-            # how to get cookies in python to delete cookie n session
+        latest_session = SessionToken.objects.filter(user=user).last()
+        if latest_session:
+            latest_session.delete()
+
+    return redirect("/login/")
 
 
-def upvote_view(request):           # method to create upvote for comments
-    user = check_validation(request)
-    comment = None
-
-    print ("upvote view")
-    if user and request.method == 'POST':
-
-        form = UpvoteForm(request.POST)
-        if form.is_valid():
-
-            comment_id = int(form.cleaned_data.get('id'))
-
-            comment = CommentModel.objects.filter(id=comment_id).first()
-            print ("upvoted not yet")
-
-            if comment is not None:
-                # print ' unliking post'
-                print ("upvoted")
-                comment.upvote_num += 1
-                comment.save()
-                print (comment.upvote_num)
+# this view show the automatic categories
+def add_category(post):
+    app = ClarifaiApp(api_key='fcfdca12d67a4af7b657c4117ea90128')
+    model = app.models.get("general-v1.3")
+    response = model.predict_by_url(url=post.image_url)
+    if response["status"]["code"]==10000:
+        if response["outputs"]:
+            if response["output"][0]["data"]:
+                if response["output"][0]["data"]["concepts"]:
+                    for index in range (0,len(response["outputs"][0]["data"]["concepts"])):
+                        category=CategoryModel(post=post,category_text=response['outputs'][0]['data']['concepts'][index]['name'])
+                        category.save()
+                else:
+                    print 'no concepts error'
             else:
-                print ('stupid mistake')
-                #liked_msg = 'Unliked!'
-
-        return redirect('/feed/')
+                print 'no data list error'
+        else:
+            print 'no outtput list error'
     else:
-        return redirect('/feed/')
-
-def query_based_search_view(request):
-
-    user = check_validation(request)
-    if user:
-        if request.method == "POST":
-            searchForm = SearchForm(request.POST)
-            if searchForm.is_valid():
-                print 'valid'
-                username_query = searchForm.cleaned_data.get('searchquery')
-                user_with_query = UserModel.objects.filter(username=username_query).first();
-                posts = PostModel.objects.filter(user=user_with_query)
-                return render(request, 'Feed.html',{'posts':posts})
-            else:
-                return redirect('/feed/')
-    else:
-        return redirect('/login/')
+        print 'response code error'
