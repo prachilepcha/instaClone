@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
 from django.shortcuts import render, redirect
 from forms import SignUpForm, LoginForm, PostForm, LikeForm, CommentForm
-from models import UserModel, SessionToken, PostModel, LikeModel, CommentModel , CategoryModel
+from models import UserModel, SessionToken, PostModel, LikeModel, CommentModel
 from django.contrib.auth.hashers import make_password, check_password
 from datetime import timedelta,datetime
 from django.utils import timezone
-from instaClone.settings import BASE_DIR
+from instaclone.settings import BASE_DIR
 
 from clarifai.rest import ClarifaiApp
 app = ClarifaiApp(api_key='da2c3a17edc1447ca6d5db97a9e5d049')
@@ -13,9 +13,9 @@ from imgurpython import ImgurClient
 import json
 import codecs
 
-CLIENT_ID = "0372aaa59f6b917"
+CLIENT_ID = "cf0c06c660461a5"
 
-CLIENT_SECRET = "c1faf1a9c0fe2df3944ffa4a526e6bd4fe03c777"
+CLIENT_SECRET = "087c2246892a388af848de5eb39d3ee4aa1739d7"
 
 
 # Create your views here.
